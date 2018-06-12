@@ -22,7 +22,11 @@ type snappyProvider struct {
 }
 
 func New(name string) EncodingProvider {
-	return registry[name]
+	if p, ok := registry[name]; ok {
+		return p
+	}
+
+	return registry["snappy"]
 }
 
 func NewSnappy() EncodingProvider {
