@@ -180,7 +180,6 @@ func (di *docValueReader) iterateAllDocValues(s *SegmentBase, visitor docNumTerm
 			continue
 		}
 
-		fmt.Println("uncompress the already loaded data")
 		uncompressed, err := snappy.Decode(di.uncompressed[:cap(di.uncompressed)], di.curChunkData)
 		if err != nil {
 			return err

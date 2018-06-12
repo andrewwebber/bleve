@@ -37,17 +37,17 @@ const docDropped = math.MaxUint64 // sentinel docNum to represent a deleted doc
 // remaining data.  This new segment is built at the specified path,
 // with the provided chunkFactor.
 func Merge(segments []*Segment, drops []*roaring.Bitmap, path string,
-	chunkFactor uint32) ([][]uint64, uint64, error) {
+	chunkFactor uint32, p EncodingProvider) ([][]uint64, uint64, error) {
 	segmentBases := make([]*SegmentBase, len(segments))
 	for segmenti, segment := range segments {
 		segmentBases[segmenti] = &segment.SegmentBase
 	}
 
-	return MergeSegmentBases(segmentBases, drops, path, chunkFactor)
+	return MergeSegmentBases(segmentBases, drops, path, chunkFactor, p)
 }
 
 func MergeSegmentBases(segmentBases []*SegmentBase, drops []*roaring.Bitmap, path string,
-	chunkFactor uint32) ([][]uint64, uint64, error) {
+	chunkFactor uint32, p EncodingProvider) ([][]uint64, uint64, error) {
 	flag := os.O_RDWR | os.O_CREATE
 
 	f, err := os.OpenFile(path, flag, 0600)
@@ -67,7 +67,7 @@ func MergeSegmentBases(segmentBases []*SegmentBase, drops []*roaring.Bitmap, pat
 	cr := NewCountHashWriter(br)
 
 	newDocNums, numDocs, storedIndexOffset, fieldsIndexOffset, docValueOffset, _, _, _, err :=
-		MergeToWriter(segmentBases, drops, chunkFactor, cr)
+		MergeToWriter(segmentBases, drops, chunkFactor, cr, p)
 	if err != nil {
 		cleanup()
 		return nil, 0, err
@@ -102,7 +102,7 @@ func MergeSegmentBases(segmentBases []*SegmentBase, drops []*roaring.Bitmap, pat
 }
 
 func MergeToWriter(segments []*SegmentBase, drops []*roaring.Bitmap,
-	chunkFactor uint32, cr *CountHashWriter) (
+	chunkFactor uint32, cr *CountHashWriter, p EncodingProvider) (
 	newDocNums [][]uint64,
 	numDocs, storedIndexOffset, fieldsIndexOffset, docValueOffset uint64,
 	dictLocs []uint64, fieldsInv []string, fieldsMap map[string]uint16,
@@ -123,7 +123,7 @@ func MergeToWriter(segments []*SegmentBase, drops []*roaring.Bitmap,
 
 		dictLocs, docValueOffset, err = persistMergedRest(segments, drops,
 			fieldsInv, fieldsMap, fieldsSame,
-			newDocNums, numDocs, chunkFactor, cr)
+			newDocNums, numDocs, chunkFactor, cr, p)
 		if err != nil {
 			return nil, 0, 0, 0, 0, nil, nil, nil, err
 		}
@@ -165,7 +165,7 @@ func computeNewDocCount(segments []*SegmentBase, drops []*roaring.Bitmap) uint64
 func persistMergedRest(segments []*SegmentBase, dropsIn []*roaring.Bitmap,
 	fieldsInv []string, fieldsMap map[string]uint16, fieldsSame bool,
 	newDocNumsIn [][]uint64, newSegDocCount uint64, chunkFactor uint32,
-	w *CountHashWriter) ([]uint64, uint64, error) {
+	w *CountHashWriter, p EncodingProvider) ([]uint64, uint64, error) {
 
 	var bufMaxVarintLen64 []byte = make([]byte, binary.MaxVarintLen64)
 	var bufLoc []uint64
@@ -353,7 +353,7 @@ func persistMergedRest(segments []*SegmentBase, dropsIn []*roaring.Bitmap,
 		fieldDvLocsStart[fieldID] = uint64(w.Count())
 
 		// update the field doc values
-		fdvEncoder := newChunkedContentCoder(uint64(chunkFactor), newSegDocCount-1, w, true)
+		fdvEncoder := newChunkedContentCoder(uint64(chunkFactor), newSegDocCount-1, w, true, p)
 
 		fdvReadersAvailable := false
 		var dvIterClone *docValueReader

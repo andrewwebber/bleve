@@ -122,25 +122,25 @@ func buildTestSegment() (*SegmentBase, uint64, error) {
 		}
 	}
 
-	return AnalysisResultsToSegmentBase(results, 1024)
+	return AnalysisResultsToSegmentBase(results, 1024, NewSnappy())
 }
 
 func buildTestSegmentMulti() (*SegmentBase, uint64, error) {
 	results := buildTestAnalysisResultsMulti()
 
-	return AnalysisResultsToSegmentBase(results, 1024)
+	return AnalysisResultsToSegmentBase(results, 1024, NewSnappy())
 }
 
 func buildTestSegmentMultiWithChunkFactor(chunkFactor uint32) (*SegmentBase, uint64, error) {
 	results := buildTestAnalysisResultsMulti()
 
-	return AnalysisResultsToSegmentBase(results, chunkFactor)
+	return AnalysisResultsToSegmentBase(results, chunkFactor, NewSnappy())
 }
 
 func buildTestSegmentMultiWithDifferentFields(includeDocA, includeDocB bool) (*SegmentBase, uint64, error) {
 	results := buildTestAnalysisResultsMultiWithDifferentFields(includeDocA, includeDocB)
 
-	return AnalysisResultsToSegmentBase(results, 1024)
+	return AnalysisResultsToSegmentBase(results, 1024, NewSnappy())
 }
 
 func buildTestAnalysisResultsMulti() []*index.AnalysisResult {
@@ -550,7 +550,7 @@ func buildTestSegmentWithDefaultFieldMapping(chunkFactor uint32) (
 		}
 	}
 
-	sb, _, err := AnalysisResultsToSegmentBase(results, chunkFactor)
+	sb, _, err := AnalysisResultsToSegmentBase(results, chunkFactor, NewSnappy())
 
 	return sb, fields, err
 }

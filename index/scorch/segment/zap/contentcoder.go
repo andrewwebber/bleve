@@ -20,8 +20,6 @@ import (
 	"fmt"
 	"io"
 	"reflect"
-
-	"github.com/golang/snappy"
 )
 
 var reflectStaticSizeMetaData int
@@ -49,6 +47,7 @@ type chunkedContentCoder struct {
 	chunkMeta []MetaData
 
 	compressed []byte // temp buf for snappy compression
+	p          EncodingProvider
 }
 
 // MetaData represents the data information inside a
@@ -61,7 +60,7 @@ type MetaData struct {
 // newChunkedContentCoder returns a new chunk content coder which
 // packs data into chunks based on the provided chunkSize
 func newChunkedContentCoder(chunkSize uint64, maxDocNum uint64,
-	w io.Writer, progressiveWrite bool) *chunkedContentCoder {
+	w io.Writer, progressiveWrite bool, p EncodingProvider) *chunkedContentCoder {
 	total := maxDocNum/chunkSize + 1
 	rv := &chunkedContentCoder{
 		chunkSize:        chunkSize,
@@ -69,6 +68,7 @@ func newChunkedContentCoder(chunkSize uint64, maxDocNum uint64,
 		chunkMeta:        make([]MetaData, 0, total),
 		w:                w,
 		progressiveWrite: progressiveWrite,
+		p:                p,
 	}
 
 	return rv
@@ -114,7 +114,11 @@ func (c *chunkedContentCoder) flushContents() error {
 	metaData := c.chunkMetaBuf.Bytes()
 	c.final = append(c.final, c.chunkMetaBuf.Bytes()...)
 	fmt.Println("write the compressed data to the final data")
-	c.compressed = snappy.Encode(c.compressed[:cap(c.compressed)], c.chunkBuf.Bytes())
+	// c.compressed = snappy.Encode(c.compressed[:cap(c.compressed)], c.chunkBuf.Bytes())
+	if c.compressed, err = c.p.Encode(c.compressed[:cap(c.compressed)], c.chunkBuf.Bytes()); err != nil {
+		return err
+	}
+
 	c.final = append(c.final, c.compressed...)
 
 	c.chunkLens[c.currChunk] = uint64(len(c.compressed) + len(metaData))

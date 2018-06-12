@@ -36,9 +36,9 @@ var NewSegmentBufferAvgBytesPerDocFactor float64 = 1.0
 // AnalysisResultsToSegmentBase produces an in-memory zap-encoded
 // SegmentBase from analysis results
 func AnalysisResultsToSegmentBase(results []*index.AnalysisResult,
-	chunkFactor uint32) (*SegmentBase, uint64, error) {
+	chunkFactor uint32, p EncodingProvider) (*SegmentBase, uint64, error) {
 	s := interimPool.Get().(*interim)
-
+	s.EncodingProvider = p
 	var br bytes.Buffer
 	if s.lastNumDocs > 0 {
 		// use previous results to initialize the buf with an estimate
@@ -130,6 +130,8 @@ type interim struct {
 
 	lastNumDocs int
 	lastOutSize int
+
+	EncodingProvider EncodingProvider
 }
 
 func (s *interim) reset() (err error) {
@@ -599,7 +601,7 @@ func (s *interim) writeDicts() (fdvIndexOffset uint64, dictOffsets []uint64, err
 
 	tfEncoder := newChunkedIntCoder(uint64(s.chunkFactor), uint64(len(s.results)-1))
 	locEncoder := newChunkedIntCoder(uint64(s.chunkFactor), uint64(len(s.results)-1))
-	fdvEncoder := newChunkedContentCoder(uint64(s.chunkFactor), uint64(len(s.results)-1), s.w, false)
+	fdvEncoder := newChunkedContentCoder(uint64(s.chunkFactor), uint64(len(s.results)-1), s.w, false, s.EncodingProvider)
 
 	var docTermMap [][]byte
 
