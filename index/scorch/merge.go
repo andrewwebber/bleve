@@ -196,7 +196,7 @@ func (s *Scorch) planMergeAtSnapshot(ourSnapshot *IndexSnapshot,
 			fileMergeZapStartTime := time.Now()
 
 			atomic.AddUint64(&s.stats.TotFileMergeZapBeg, 1)
-			newDocNums, nBytes, err := zap.Merge(segmentsToMerge, docsToDrop, path, DefaultChunkFactor)
+			newDocNums, nBytes, err := zap.Merge(segmentsToMerge, docsToDrop, path, DefaultChunkFactor, s.encoding)
 			atomic.AddUint64(&s.stats.TotFileMergeZapEnd, 1)
 			atomic.AddUint64(&s.stats.TotFileMergeWrittenBytes, nBytes)
 
@@ -287,7 +287,7 @@ func (s *Scorch) mergeSegmentBases(snapshot *IndexSnapshot,
 	path := s.path + string(os.PathSeparator) + filename
 
 	newDocNums, _, err :=
-		zap.MergeSegmentBases(sbs, sbsDrops, path, chunkFactor)
+		zap.MergeSegmentBases(sbs, sbsDrops, path, chunkFactor, s.encoding)
 
 	atomic.AddUint64(&s.stats.TotMemMergeZapEnd, 1)
 

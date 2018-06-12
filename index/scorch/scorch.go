@@ -72,7 +72,8 @@ type Scorch struct {
 	onEvent      func(event Event)
 	onAsyncError func(err error)
 
-	iStats internalStats
+	iStats   internalStats
+	encoding zap.EncodingProvider
 }
 
 type internalStats struct {
@@ -98,6 +99,15 @@ func NewScorch(storeName string,
 		ineligibleForRemoval: map[string]bool{},
 	}
 	rv.root = &IndexSnapshot{parent: rv, refs: 1, creator: "NewScorch"}
+	enc := config["encoding"]
+
+	switch enc {
+	case "zap":
+		rv.encoding = zap.NewSnappy()
+	default:
+		rv.encoding = zap.NewSnappy()
+	}
+
 	ro, ok := config["read_only"].(bool)
 	if ok {
 		rv.readOnly = ro
@@ -319,7 +329,7 @@ func (s *Scorch) Batch(batch *index.Batch) (err error) {
 	var newSegment segment.Segment
 	var bufBytes uint64
 	if len(analysisResults) > 0 {
-		newSegment, bufBytes, err = zap.AnalysisResultsToSegmentBase(analysisResults, DefaultChunkFactor)
+		newSegment, bufBytes, err = zap.AnalysisResultsToSegmentBase(analysisResults, DefaultChunkFactor, s.encoding)
 		if err != nil {
 			return err
 		}

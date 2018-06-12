@@ -17,7 +17,6 @@ package zap
 import (
 	"bytes"
 	"encoding/binary"
-	"fmt"
 	"io"
 	"reflect"
 )
@@ -113,7 +112,6 @@ func (c *chunkedContentCoder) flushContents() error {
 	// write the metadata to final data
 	metaData := c.chunkMetaBuf.Bytes()
 	c.final = append(c.final, c.chunkMetaBuf.Bytes()...)
-	fmt.Println("write the compressed data to the final data")
 	// c.compressed = snappy.Encode(c.compressed[:cap(c.compressed)], c.chunkBuf.Bytes())
 	if c.compressed, err = c.p.Encode(c.compressed[:cap(c.compressed)], c.chunkBuf.Bytes()); err != nil {
 		return err
