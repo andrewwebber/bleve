@@ -99,8 +99,8 @@ func NewScorch(storeName string,
 		ineligibleForRemoval: map[string]bool{},
 	}
 	rv.root = &IndexSnapshot{parent: rv, refs: 1, creator: "NewScorch"}
-	enc := config["encoding"]
-	rv.encoding = zap.New(enc)
+	enc := config["encoding"].(string)
+	rv.Encoding = zap.New(enc)
 
 	ro, ok := config["read_only"].(bool)
 	if ok {
@@ -323,7 +323,7 @@ func (s *Scorch) Batch(batch *index.Batch) (err error) {
 	var newSegment segment.Segment
 	var bufBytes uint64
 	if len(analysisResults) > 0 {
-		newSegment, bufBytes, err = zap.AnalysisResultsToSegmentBase(analysisResults, DefaultChunkFactor, s.encoding)
+		newSegment, bufBytes, err = zap.AnalysisResultsToSegmentBase(analysisResults, DefaultChunkFactor, s.Encoding)
 		if err != nil {
 			return err
 		}
