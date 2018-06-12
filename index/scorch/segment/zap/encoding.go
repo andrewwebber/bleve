@@ -13,6 +13,10 @@ func init() {
 	registry["snappy"] = NewSnappy()
 }
 
+func RegisterEncodingProvider(name string, provider EncodingProvider) {
+	registry[name] = provider
+}
+
 type EncodingProvider interface {
 	Encode(dst, src []byte) ([]byte, error)
 	Decode(dst, src []byte) ([]byte, error)
