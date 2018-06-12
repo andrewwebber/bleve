@@ -19,6 +19,8 @@ import (
 	"encoding/binary"
 	"io"
 	"reflect"
+
+	"github.com/blevesearch/bleve/index/scorch/segment"
 )
 
 var reflectStaticSizeMetaData int
@@ -46,7 +48,7 @@ type chunkedContentCoder struct {
 	chunkMeta []MetaData
 
 	compressed []byte // temp buf for snappy compression
-	p          EncodingProvider
+	p          segment.EncodingProvider
 }
 
 // MetaData represents the data information inside a
@@ -59,14 +61,14 @@ type MetaData struct {
 // newChunkedContentCoder returns a new chunk content coder which
 // packs data into chunks based on the provided chunkSize
 func newChunkedContentCoder(chunkSize uint64, maxDocNum uint64,
-	w io.Writer, progressiveWrite bool, p EncodingProvider) *chunkedContentCoder {
+	w io.Writer, progressiveWrite bool, p segment.EncodingProvider) *chunkedContentCoder {
 	total := maxDocNum/chunkSize + 1
 	rv := &chunkedContentCoder{
 		chunkSize:        chunkSize,
 		chunkLens:        make([]uint64, total),
 		chunkMeta:        make([]MetaData, 0, total),
 		w:                w,
-		progressiveWrite: progressiveWrite,
+		progressiveWrite: false,
 		p:                p,
 	}
 
@@ -112,7 +114,6 @@ func (c *chunkedContentCoder) flushContents() error {
 	// write the metadata to final data
 	metaData := c.chunkMetaBuf.Bytes()
 	c.final = append(c.final, c.chunkMetaBuf.Bytes()...)
-	// c.compressed = snappy.Encode(c.compressed[:cap(c.compressed)], c.chunkBuf.Bytes())
 	if c.compressed, err = c.p.Encode(c.compressed[:cap(c.compressed)], c.chunkBuf.Bytes()); err != nil {
 		return err
 	}

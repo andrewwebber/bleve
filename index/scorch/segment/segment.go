@@ -19,6 +19,11 @@ import (
 	"github.com/blevesearch/bleve/index"
 )
 
+type EncodingProvider interface {
+	Encode(dst, src []byte) ([]byte, error)
+	Decode(dst, src []byte) ([]byte, error)
+}
+
 // DocumentFieldValueVisitor defines a callback to be visited for each
 // stored field value.  The return value determines if the visitor
 // should keep going.  Returning true continues visiting, false stops.
@@ -27,7 +32,7 @@ type DocumentFieldValueVisitor func(field string, typ byte, value []byte, pos []
 type Segment interface {
 	Dictionary(field string) (TermDictionary, error)
 
-	VisitDocument(num uint64, visitor DocumentFieldValueVisitor) error
+	VisitDocument(num uint64, visitor DocumentFieldValueVisitor, p EncodingProvider) error
 
 	DocID(num uint64) ([]byte, error)
 

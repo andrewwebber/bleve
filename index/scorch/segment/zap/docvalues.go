@@ -25,7 +25,6 @@ import (
 	"github.com/blevesearch/bleve/index"
 	"github.com/blevesearch/bleve/index/scorch/segment"
 	"github.com/blevesearch/bleve/size"
-	"github.com/golang/snappy"
 )
 
 var reflectStaticSizedocValueReader int
@@ -43,13 +42,14 @@ type docVisitState struct {
 }
 
 type docValueReader struct {
-	field          string
-	curChunkNum    uint64
-	chunkOffsets   []uint64
-	dvDataLoc      uint64
-	curChunkHeader []MetaData
-	curChunkData   []byte // compressed data cache
-	uncompressed   []byte // temp buf for snappy decompression
+	field            string
+	curChunkNum      uint64
+	chunkOffsets     []uint64
+	dvDataLoc        uint64
+	curChunkHeader   []MetaData
+	curChunkData     []byte // compressed data cache
+	uncompressed     []byte // temp buf for snappy decompression
+	EncodingProvider segment.EncodingProvider
 }
 
 func (di *docValueReader) size() int {
@@ -72,6 +72,7 @@ func (di *docValueReader) cloneInto(rv *docValueReader) *docValueReader {
 	rv.curChunkHeader = rv.curChunkHeader[:0]
 	rv.curChunkData = nil
 	rv.uncompressed = rv.uncompressed[:0]
+	rv.EncodingProvider = rv.EncodingProvider
 
 	return rv
 }
@@ -180,7 +181,7 @@ func (di *docValueReader) iterateAllDocValues(s *SegmentBase, visitor docNumTerm
 			continue
 		}
 
-		uncompressed, err := snappy.Decode(di.uncompressed[:cap(di.uncompressed)], di.curChunkData)
+		uncompressed, err := di.EncodingProvider.Decode(di.uncompressed[:cap(di.uncompressed)], di.curChunkData)
 		if err != nil {
 			return err
 		}
@@ -215,7 +216,7 @@ func (di *docValueReader) visitDocValues(docNum uint64,
 		uncompressed = di.uncompressed
 	} else {
 		// uncompress the already loaded data
-		uncompressed, err = snappy.Decode(di.uncompressed[:cap(di.uncompressed)], di.curChunkData)
+		uncompressed, err = di.EncodingProvider.Decode(di.uncompressed[:cap(di.uncompressed)], di.curChunkData)
 		if err != nil {
 			return err
 		}

@@ -28,7 +28,6 @@ import (
 	"github.com/blevesearch/bleve/size"
 	"github.com/couchbase/vellum"
 	mmap "github.com/edsrzf/mmap-go"
-	"github.com/golang/snappy"
 )
 
 var reflectStaticSizeSegmentBase int
@@ -290,14 +289,14 @@ var visitDocumentCtxPool = sync.Pool{
 
 // VisitDocument invokes the DocFieldValueVistor for each stored field
 // for the specified doc number
-func (s *SegmentBase) VisitDocument(num uint64, visitor segment.DocumentFieldValueVisitor) error {
+func (s *SegmentBase) VisitDocument(num uint64, visitor segment.DocumentFieldValueVisitor, p segment.EncodingProvider) error {
 	vdc := visitDocumentCtxPool.Get().(*visitDocumentCtx)
 	defer visitDocumentCtxPool.Put(vdc)
-	return s.visitDocument(vdc, num, visitor)
+	return s.visitDocument(vdc, num, visitor, p)
 }
 
 func (s *SegmentBase) visitDocument(vdc *visitDocumentCtx, num uint64,
-	visitor segment.DocumentFieldValueVisitor) error {
+	visitor segment.DocumentFieldValueVisitor, p segment.EncodingProvider) error {
 	// first make sure this is a valid number in this segment
 	if num < s.numDocs {
 		meta, compressed := s.getDocStoredMetaAndCompressed(num)
@@ -320,7 +319,7 @@ func (s *SegmentBase) visitDocument(vdc *visitDocumentCtx, num uint64,
 		// handle non-"_id" fields
 		compressed = compressed[idFieldValLen:]
 
-		uncompressed, err := snappy.Decode(vdc.buf[:cap(vdc.buf)], compressed)
+		uncompressed, err := p.Decode(vdc.buf[:cap(vdc.buf)], compressed)
 		if err != nil {
 			return err
 		}

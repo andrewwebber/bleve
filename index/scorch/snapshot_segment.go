@@ -99,8 +99,8 @@ func (s *SegmentSnapshot) Close() error {
 	return s.segment.Close()
 }
 
-func (s *SegmentSnapshot) VisitDocument(num uint64, visitor segment.DocumentFieldValueVisitor) error {
-	return s.segment.VisitDocument(num, visitor)
+func (s *SegmentSnapshot) VisitDocument(num uint64, visitor segment.DocumentFieldValueVisitor, p segment.EncodingProvider) error {
+	return s.segment.VisitDocument(num, visitor, p)
 }
 
 func (s *SegmentSnapshot) DocID(num uint64) ([]byte, error) {

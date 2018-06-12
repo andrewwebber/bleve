@@ -24,8 +24,8 @@ import (
 	"sort"
 
 	"github.com/RoaringBitmap/roaring"
+	"github.com/blevesearch/bleve/index/scorch/segment"
 	"github.com/couchbase/vellum"
-	"github.com/golang/snappy"
 )
 
 var DefaultFileMergerBufferSize = 1024 * 1024
@@ -37,7 +37,7 @@ const docDropped = math.MaxUint64 // sentinel docNum to represent a deleted doc
 // remaining data.  This new segment is built at the specified path,
 // with the provided chunkFactor.
 func Merge(segments []*Segment, drops []*roaring.Bitmap, path string,
-	chunkFactor uint32, p EncodingProvider) ([][]uint64, uint64, error) {
+	chunkFactor uint32, p segment.EncodingProvider) ([][]uint64, uint64, error) {
 	segmentBases := make([]*SegmentBase, len(segments))
 	for segmenti, segment := range segments {
 		segmentBases[segmenti] = &segment.SegmentBase
@@ -47,7 +47,7 @@ func Merge(segments []*Segment, drops []*roaring.Bitmap, path string,
 }
 
 func MergeSegmentBases(segmentBases []*SegmentBase, drops []*roaring.Bitmap, path string,
-	chunkFactor uint32, p EncodingProvider) ([][]uint64, uint64, error) {
+	chunkFactor uint32, p segment.EncodingProvider) ([][]uint64, uint64, error) {
 	flag := os.O_RDWR | os.O_CREATE
 
 	f, err := os.OpenFile(path, flag, 0600)
@@ -102,7 +102,7 @@ func MergeSegmentBases(segmentBases []*SegmentBase, drops []*roaring.Bitmap, pat
 }
 
 func MergeToWriter(segments []*SegmentBase, drops []*roaring.Bitmap,
-	chunkFactor uint32, cr *CountHashWriter, p EncodingProvider) (
+	chunkFactor uint32, cr *CountHashWriter, p segment.EncodingProvider) (
 	newDocNums [][]uint64,
 	numDocs, storedIndexOffset, fieldsIndexOffset, docValueOffset uint64,
 	dictLocs []uint64, fieldsInv []string, fieldsMap map[string]uint16,
@@ -116,7 +116,7 @@ func MergeToWriter(segments []*SegmentBase, drops []*roaring.Bitmap,
 	numDocs = computeNewDocCount(segments, drops)
 	if numDocs > 0 {
 		storedIndexOffset, newDocNums, err = mergeStoredAndRemap(segments, drops,
-			fieldsMap, fieldsInv, fieldsSame, numDocs, cr)
+			fieldsMap, fieldsInv, fieldsSame, numDocs, cr, p)
 		if err != nil {
 			return nil, 0, 0, 0, 0, nil, nil, nil, err
 		}
@@ -165,7 +165,7 @@ func computeNewDocCount(segments []*SegmentBase, drops []*roaring.Bitmap) uint64
 func persistMergedRest(segments []*SegmentBase, dropsIn []*roaring.Bitmap,
 	fieldsInv []string, fieldsMap map[string]uint16, fieldsSame bool,
 	newDocNumsIn [][]uint64, newSegDocCount uint64, chunkFactor uint32,
-	w *CountHashWriter, p EncodingProvider) ([]uint64, uint64, error) {
+	w *CountHashWriter, p segment.EncodingProvider) ([]uint64, uint64, error) {
 
 	var bufMaxVarintLen64 []byte = make([]byte, binary.MaxVarintLen64)
 	var bufLoc []uint64
@@ -581,7 +581,7 @@ type varintEncoder func(uint64) (int, error)
 
 func mergeStoredAndRemap(segments []*SegmentBase, drops []*roaring.Bitmap,
 	fieldsMap map[string]uint16, fieldsInv []string, fieldsSame bool, newSegDocCount uint64,
-	w *CountHashWriter) (uint64, [][]uint64, error) {
+	w *CountHashWriter, p segment.EncodingProvider) (uint64, [][]uint64, error) {
 	var rv [][]uint64 // The remapped or newDocNums for each segment.
 
 	var newDocNum uint64
@@ -671,7 +671,7 @@ func mergeStoredAndRemap(segments []*SegmentBase, drops []*roaring.Bitmap,
 				poss[fieldID] = append(poss[fieldID], curPos)
 
 				return true
-			})
+			}, p)
 			if err != nil {
 				return 0, nil, err
 			}
@@ -700,7 +700,10 @@ func mergeStoredAndRemap(segments []*SegmentBase, drops []*roaring.Bitmap,
 
 			metaBytes := metaBuf.Bytes()
 
-			compressed = snappy.Encode(compressed[:cap(compressed)], data)
+			compressed, err = p.Encode(compressed[:cap(compressed)], data)
+			if err != nil {
+				return 0, nil, err
+			}
 
 			// record where we're about to start writing
 			docNumOffsets[newDocNum] = uint64(w.Count())

@@ -336,7 +336,7 @@ func (i *IndexSnapshot) Document(id string) (rv *document.Document, err error) {
 		}
 
 		return true
-	})
+	}, i.parent.Encoding)
 	if err != nil {
 		return nil, err
 	}

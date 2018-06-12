@@ -73,7 +73,7 @@ type Scorch struct {
 	onAsyncError func(err error)
 
 	iStats   internalStats
-	Encoding zap.EncodingProvider
+	Encoding segment.EncodingProvider
 }
 
 type internalStats struct {

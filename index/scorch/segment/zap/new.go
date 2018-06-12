@@ -17,6 +17,7 @@ package zap
 import (
 	"bytes"
 	"encoding/binary"
+	"fmt"
 	"math"
 	"sort"
 	"sync"
@@ -25,6 +26,7 @@ import (
 	"github.com/blevesearch/bleve/analysis"
 	"github.com/blevesearch/bleve/document"
 	"github.com/blevesearch/bleve/index"
+	"github.com/blevesearch/bleve/index/scorch/segment"
 	"github.com/couchbase/vellum"
 	"github.com/golang/snappy"
 )
@@ -36,7 +38,7 @@ var NewSegmentBufferAvgBytesPerDocFactor float64 = 1.0
 // AnalysisResultsToSegmentBase produces an in-memory zap-encoded
 // SegmentBase from analysis results
 func AnalysisResultsToSegmentBase(results []*index.AnalysisResult,
-	chunkFactor uint32, p EncodingProvider) (*SegmentBase, uint64, error) {
+	chunkFactor uint32, p segment.EncodingProvider) (*SegmentBase, uint64, error) {
 	s := interimPool.Get().(*interim)
 	s.EncodingProvider = p
 	var br bytes.Buffer
@@ -62,6 +64,7 @@ func AnalysisResultsToSegmentBase(results []*index.AnalysisResult,
 		return nil, uint64(0), err
 	}
 
+	fmt.Println("Writing ", string(br.Bytes()))
 	sb, err := InitSegmentBase(br.Bytes(), s.w.Sum32(), chunkFactor,
 		s.FieldsMap, s.FieldsInv, uint64(len(results)),
 		storedIndexOffset, fieldsIndexOffset, fdvIndexOffset, dictOffsets)
@@ -131,7 +134,7 @@ type interim struct {
 	lastNumDocs int
 	lastOutSize int
 
-	EncodingProvider EncodingProvider
+	EncodingProvider segment.EncodingProvider
 }
 
 func (s *interim) reset() (err error) {

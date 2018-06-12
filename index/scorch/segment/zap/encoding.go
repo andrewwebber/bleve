@@ -1,10 +1,11 @@
 package zap
 
 import (
+	"github.com/blevesearch/bleve/index/scorch/segment"
 	"github.com/golang/snappy"
 )
 
-type encodingRegistry map[string]EncodingProvider
+type encodingRegistry map[string]segment.EncodingProvider
 
 var registry encodingRegistry
 
@@ -13,19 +14,14 @@ func init() {
 	registry["snappy"] = NewSnappy()
 }
 
-func RegisterEncodingProvider(name string, provider EncodingProvider) {
+func RegisterEncodingProvider(name string, provider segment.EncodingProvider) {
 	registry[name] = provider
-}
-
-type EncodingProvider interface {
-	Encode(dst, src []byte) ([]byte, error)
-	Decode(dst, src []byte) ([]byte, error)
 }
 
 type snappyProvider struct {
 }
 
-func New(name string) EncodingProvider {
+func New(name string) segment.EncodingProvider {
 	if p, ok := registry[name]; ok {
 		return p
 	}
@@ -33,7 +29,7 @@ func New(name string) EncodingProvider {
 	return registry["snappy"]
 }
 
-func NewSnappy() EncodingProvider {
+func NewSnappy() segment.EncodingProvider {
 	return &snappyProvider{}
 }
 
