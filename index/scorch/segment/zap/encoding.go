@@ -1,10 +1,17 @@
 package zap
 
 import (
-	"fmt"
-
 	"github.com/golang/snappy"
 )
+
+type encodingRegistry map[string]EncodingProvider
+
+var registry encodingRegistry
+
+func init() {
+	registry = make(encodingRegistry)
+	registry["snappy"] = NewSnappy()
+}
 
 type EncodingProvider interface {
 	Encode(dst, src []byte) ([]byte, error)
@@ -14,16 +21,18 @@ type EncodingProvider interface {
 type snappyProvider struct {
 }
 
+func New(name string) EncodingProvider {
+	return registry[name]
+}
+
 func NewSnappy() EncodingProvider {
 	return &snappyProvider{}
 }
 
 func (s snappyProvider) Encode(dst, src []byte) ([]byte, error) {
-	fmt.Println("zap encode")
 	return snappy.Encode(dst, src), nil
 }
 
 func (s snappyProvider) Decode(dst, src []byte) ([]byte, error) {
-	fmt.Println("zap decode")
 	return snappy.Decode(dst, src)
 }

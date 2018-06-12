@@ -73,7 +73,7 @@ type Scorch struct {
 	onAsyncError func(err error)
 
 	iStats   internalStats
-	encoding zap.EncodingProvider
+	Encoding zap.EncodingProvider
 }
 
 type internalStats struct {
@@ -100,13 +100,7 @@ func NewScorch(storeName string,
 	}
 	rv.root = &IndexSnapshot{parent: rv, refs: 1, creator: "NewScorch"}
 	enc := config["encoding"]
-
-	switch enc {
-	case "zap":
-		rv.encoding = zap.NewSnappy()
-	default:
-		rv.encoding = zap.NewSnappy()
-	}
+	rv.encoding = zap.New(enc)
 
 	ro, ok := config["read_only"].(bool)
 	if ok {
