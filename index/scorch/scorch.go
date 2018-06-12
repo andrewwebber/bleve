@@ -99,8 +99,10 @@ func NewScorch(storeName string,
 		ineligibleForRemoval: map[string]bool{},
 	}
 	rv.root = &IndexSnapshot{parent: rv, refs: 1, creator: "NewScorch"}
-	enc := config["encoding"].(string)
-	rv.Encoding = zap.New(enc)
+	rv.Encoding = zap.New("snappy")
+	if enc, ok := config["encoding"].(string); ok {
+		rv.Encoding = zap.New(enc)
+	}
 
 	ro, ok := config["read_only"].(bool)
 	if ok {
