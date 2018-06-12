@@ -363,6 +363,7 @@ func persistMergedRest(segments []*SegmentBase, dropsIn []*roaring.Bitmap,
 				dvIter != nil {
 				fdvReadersAvailable = true
 				dvIterClone = dvIter.cloneInto(dvIterClone)
+				dvIterClone.EncodingProvider = p
 				err = dvIterClone.iterateAllDocValues(segment, func(docNum uint64, terms []byte) error {
 					if newDocNums[segmentI][docNum] == docDropped {
 						return nil
