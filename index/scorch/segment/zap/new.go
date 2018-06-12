@@ -17,7 +17,6 @@ package zap
 import (
 	"bytes"
 	"encoding/binary"
-	"fmt"
 	"math"
 	"sort"
 	"sync"
@@ -64,7 +63,6 @@ func AnalysisResultsToSegmentBase(results []*index.AnalysisResult,
 		return nil, uint64(0), err
 	}
 
-	fmt.Println("Writing ", string(br.Bytes()))
 	sb, err := InitSegmentBase(br.Bytes(), s.w.Sum32(), chunkFactor,
 		s.FieldsMap, s.FieldsInv, uint64(len(results)),
 		storedIndexOffset, fieldsIndexOffset, fdvIndexOffset, dictOffsets)
